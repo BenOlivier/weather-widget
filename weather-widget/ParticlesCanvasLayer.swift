@@ -186,5 +186,5 @@ struct ParticlesCanvasLayer: View {
 }
 
 #Preview {
-    RainCanvasLayer()
+    ParticlesCanvasLayer()
 }

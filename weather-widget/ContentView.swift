@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  WeatherCardsView.swift
 //  weather-widget
 //
 //  Created by Ben Olivier on 21/01/2026.
@@ -10,124 +10,125 @@ import CoreMotion
 
 struct ContentView: View {
     
-    @State var dampedPitch: Double = 0.0
-    @State var dampedRoll: Double = 0.0
+    @State private var dampedPitch: Double = 0.0
+    @State private var dampedRoll: Double = 0.0
+    @State private var expandedCardID: String? = nil
     
-    @State private var rainParallaxOffset: CGSize = .zero
-    @State private var rainSpeed: Double = 1.2
+    private let motionManager = CMMotionManager()
+    private let decayHz: Double = 1.5
     
-    let motionManager = CMMotionManager()
-    let decayHz: Double = 1
+    private let gridPadding: CGFloat = 12
     
-    let CloudParallax: Double = 20
-    let rainParallax: Double = 60
-    let FrameParallax: Double = 10
+    // Sample weather data - you can replace this with your actual data
+    private let weatherCards: [(id: String, data: WeatherCardData)] = [
+        (id: "london", data: WeatherCardData(
+            backgroundColorTop: Color("rain-background-1"),
+            backgroundColorBottom: Color("rain-background-2"),
+            backgroundImage: "clouds",
+            location: "London",
+            currentTemperature: 14,
+            weatherIcon: "cloud.rain.fill",
+            forecast: "Rain for the next hour",
+            highTemperature: 15,
+            lowTemperature: 8
+        )),
+        
+        (id: "new-york", data: WeatherCardData(
+            backgroundColorTop: Color("snow-background-1"),
+            backgroundColorBottom: Color("snow-background-2"),
+            backgroundImage: "clouds",
+            location: "New York",
+            currentTemperature: 14,
+            weatherIcon: "snowflake",
+            forecast: "Rain for the next hour",
+            highTemperature: 15,
+            lowTemperature: 8
+        ))
+    ]
     
     var body: some View {
-        ZStack {
-            
-            // Background
-            Color("anti-flash-white").ignoresSafeArea()
-            
-            ZStack{
-                ZStack(alignment: .top) {
-                    LinearGradient(
-                        colors: [Color("background-1"), Color("background-2")],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    
-                    Image("clouds")
-                        .resizable()
-                        .scaledToFit()
-                        .opacity(0.6)
-                        .scaleEffect(1.2)
-                        .offset(x: CGFloat(dampedRoll * CloudParallax), y: CGFloat(dampedPitch * CloudParallax))
-                    
-                    ParticlesCanvasLayer(
-                        parallaxOffset: rainParallaxOffset,
-                        dropsPer10kPixels: 60,
-                        globalFallSpeed: rainSpeed,
-                        baseDropLength: 10,
-                        baseDropThickness: 0.75,
-                        farOpacity: 0.2,
-                        nearOpacity: 0.3,
-                        blurRadius: 0
-                    )
-                    .scaleEffect(1.2)
-                }
-                .frame(width: 300, height: 400)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .animation(.linear(duration: 0.1), value: dampedPitch)
-                .animation(.linear(duration: 0.1), value: dampedRoll)
+        GeometryReader { geometry in
+            ZStack {
+                Color("anti-flash-white").ignoresSafeArea()
                 
-                VStack{
-                    Spacer()
-                    HStack(alignment: .top) {
-                        VStack{
-                            Text("London")
-                                .font(.callout)
-                                .fontWeight(.semibold)
-                            Text("14°")
-                                .font(.largeTitle)
-                                .fontWeight(.light)
-                        }
-                        .opacity(0.8)
+                VStack(spacing: gridPadding) {
+                    ForEach(Array(weatherCards.enumerated()), id: \.offset) { index, card in
+                        let isExpanded = expandedCardID == card.id
+                        let isOtherExpanded = expandedCardID != nil && expandedCardID != card.id
                         
-                        Spacer()
-                        
-                        VStack(alignment: .trailing) {
-                            Image(systemName: "cloud.rain.fill")
-                                .padding(.bottom, 1)
-                            VStack(alignment: .trailing) {
-                                Text("Rain for the next hour")
-                                Text("H:15° L:8°")
-                            }
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                        }
-                        .opacity(0.6)
+                        WeatherCard(
+                            dampedPitch: $dampedPitch,
+                            dampedRoll: $dampedRoll,
+                            isExpanded: .constant(isExpanded),
+                            id: card.id,
+                            onTap: {
+                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                    if expandedCardID == card.id {
+                                        expandedCardID = nil
+                                    } else {
+                                        expandedCardID = card.id
+                                    }
+                                }
+                            },
+                            backgroundColorTop: card.data.backgroundColorTop,
+                            backgroundColorBottom: card.data.backgroundColorBottom,
+                            backgroundImage: card.data.backgroundImage,
+                            location: card.data.location,
+                            currentTemperature: card.data.currentTemperature,
+                            weatherIcon: card.data.weatherIcon,
+                            forecast: card.data.forecast,
+                            highTemperature: card.data.highTemperature,
+                            lowTemperature: card.data.lowTemperature
+                        )
+                        .frame(
+                            width: isExpanded ? geometry.size.width : .infinity,
+                            height: isExpanded ? geometry.size.height : .infinity
+                        )
+                        .opacity(isOtherExpanded ? 0 : 1)
+                        .zIndex(isExpanded ? 1 : 0)
                     }
-                    .foregroundStyle(.white)
-                    .padding()
                 }
-                
+                .padding(gridPadding)
+                .frame(maxHeight: 300)
             }
-            .frame(width: 300, height: 400)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 8)
-            //            .offset(x: CGFloat(dampedRoll * FrameParallax),
-            //                y: CGFloat(dampedPitch * FrameParallax))
-            .statusBarHidden()
-            .onAppear() {
-                // Start device motion updates
-                motionManager.startDeviceMotionUpdates(to: .main) { (motionData, error) in
-                    guard let motionData = motionData else { return }
-                    
-                    let deltaTime = motionManager.deviceMotionUpdateInterval
-                    
-                    let pitchDelta = motionData.rotationRate.x * deltaTime
-                    let rollDelta  = motionData.rotationRate.y * deltaTime
-                    
-                    let decay = exp(-decayHz * deltaTime)
-                    
-                    dampedPitch = dampedPitch * decay + pitchDelta
-                    dampedRoll = dampedRoll * decay + rollDelta
-                    
-                    rainParallaxOffset = CGSize(width: dampedRoll * rainParallax, height: dampedPitch * rainParallax)
-                }
+            .onAppear {
+                startMotionUpdates()
+            }
+            .onDisappear {
+                motionManager.stopDeviceMotionUpdates()
             }
         }
-        .gesture(DragGesture(minimumDistance: 0)
-            .onChanged({ gesture in
-                rainSpeed = 0.1
-            })
-            .onEnded{ _ in
-                rainSpeed = 1.2
-            }
-        )
-        
     }
+    
+    private func startMotionUpdates() {
+        guard motionManager.isDeviceMotionAvailable else { return }
+        
+        motionManager.startDeviceMotionUpdates(to: .main) { motionData, error in
+            guard let motionData = motionData else { return }
+            
+            let deltaTime = motionManager.deviceMotionUpdateInterval
+            let pitchDelta = motionData.rotationRate.x * deltaTime
+            let rollDelta = motionData.rotationRate.y * deltaTime
+            let decay = exp(-decayHz * deltaTime)
+            
+            dampedPitch = dampedPitch * decay + pitchDelta
+            dampedRoll = dampedRoll * decay + rollDelta
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+struct WeatherCardData {
+    let backgroundColorTop: Color
+    let backgroundColorBottom: Color
+    let backgroundImage: String
+    let location: String
+    let currentTemperature: Int
+    let weatherIcon: String
+    let forecast: String
+    let highTemperature: Int
+    let lowTemperature: Int
 }
 
 #Preview {
