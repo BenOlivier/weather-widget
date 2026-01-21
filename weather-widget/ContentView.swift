@@ -13,13 +13,15 @@ struct ContentView: View {
     @State var dampedPitch: Double = 0.0
     @State var dampedRoll: Double = 0.0
     
-    let motionManager = CMMotionManager()
-    let decayHz: Double = 1.5
+    @State private var rainParallaxOffset: CGSize = .zero
+    @State private var rainSpeed: Double = 1.2
     
-    let CloudParallax: Double = 100
-    let RainParallax: Double = 40
-    let FrameParallax: Double = 20
-    let ShadowParallax: Double = 20
+    let motionManager = CMMotionManager()
+    let decayHz: Double = 1
+    
+    let CloudParallax: Double = 20
+    let rainParallax: Double = 60
+    let FrameParallax: Double = 10
     
     var body: some View {
         ZStack {
@@ -31,32 +33,31 @@ struct ContentView: View {
                 ZStack(alignment: .top) {
                     LinearGradient(
                         colors: [Color("background-1"), Color("background-2")],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                     
                     Image("clouds")
                         .resizable()
                         .scaledToFit()
-                        .opacity(0.4)
-                        .scaleEffect(1.6)
+                        .opacity(0.6)
+                        .scaleEffect(1.2)
                         .offset(x: CGFloat(dampedRoll * CloudParallax), y: CGFloat(dampedPitch * CloudParallax))
                     
-                    RainCanvasLayer(
-                        dropsPer10kPixels: 80,
-                        globalFallSpeed: 0.2,
-                        baseDropLength: 8,
+                    ParticlesCanvasLayer(
+                        parallaxOffset: rainParallaxOffset,
+                        dropsPer10kPixels: 60,
+                        globalFallSpeed: rainSpeed,
+                        baseDropLength: 10,
                         baseDropThickness: 0.75,
                         farOpacity: 0.2,
                         nearOpacity: 0.3,
                         blurRadius: 0
                     )
                     .scaleEffect(1.2)
-                    .offset(x: CGFloat(dampedRoll * RainParallax), y: CGFloat(dampedPitch * RainParallax))
                 }
                 .frame(width: 300, height: 400)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-//                .offset(x: CGFloat(dampedRoll * FrameParallax), y: CGFloat(dampedPitch * FrameParallax))
                 .animation(.linear(duration: 0.1), value: dampedPitch)
                 .animation(.linear(duration: 0.1), value: dampedRoll)
                 
@@ -94,6 +95,9 @@ struct ContentView: View {
             }
             .frame(width: 300, height: 400)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 8)
+            //            .offset(x: CGFloat(dampedRoll * FrameParallax),
+            //                y: CGFloat(dampedPitch * FrameParallax))
             .statusBarHidden()
             .onAppear() {
                 // Start device motion updates
@@ -109,9 +113,20 @@ struct ContentView: View {
                     
                     dampedPitch = dampedPitch * decay + pitchDelta
                     dampedRoll = dampedRoll * decay + rollDelta
+                    
+                    rainParallaxOffset = CGSize(width: dampedRoll * rainParallax, height: dampedPitch * rainParallax)
                 }
             }
         }
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged({ gesture in
+                rainSpeed = 0.1
+            })
+            .onEnded{ _ in
+                rainSpeed = 1.2
+            }
+        )
+        
     }
 }
 
