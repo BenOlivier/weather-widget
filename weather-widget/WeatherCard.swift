@@ -54,7 +54,8 @@ struct WeatherCard: View {
                 
                 Image(backgroundImage)
                     .resizable()
-                    .scaledToFit()
+                    .scaledToFill()
+                    .frame(height: 200)
                     .opacity(0.6)
                     .scaleEffect(1.2)
                     .offset(
@@ -116,7 +117,7 @@ struct WeatherCard: View {
                     .font(.caption)
                     .fontWeight(.semibold)
                 }
-                .opacity(isExpanded ? 0.6 : 0)
+//                .opacity(isExpanded ? 0.6 : 0)
             }
             .foregroundStyle(.white)
             .padding()

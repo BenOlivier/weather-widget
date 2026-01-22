@@ -17,7 +17,7 @@ struct ContentView: View {
     private let motionManager = CMMotionManager()
     private let decayHz: Double = 1.5
     
-    private let gridPadding: CGFloat = 12
+    private let gridPadding: CGFloat = 20
     
     // Sample weather data - you can replace this with your actual data
     private let weatherCards: [(id: String, data: WeatherCardData)] = [
@@ -38,12 +38,36 @@ struct ContentView: View {
             backgroundColorBottom: Color("snow-background-2"),
             backgroundImage: "clouds",
             location: "New York",
+            currentTemperature: 2,
+            weatherIcon: "snowflake",
+            forecast: "Rain for the next hour",
+            highTemperature: 5,
+            lowTemperature: 0
+        )),
+        
+        (id: "san-francisco", data: WeatherCardData(
+            backgroundColorTop: Color("sun-background-1"),
+            backgroundColorBottom: Color("sun-background-2"),
+            backgroundImage: "clouds",
+            location: "San Francisco",
             currentTemperature: 14,
             weatherIcon: "snowflake",
             forecast: "Rain for the next hour",
-            highTemperature: 15,
-            lowTemperature: 8
-        ))
+            highTemperature: 16,
+            lowTemperature: 9
+        )),
+        
+        (id: "tokyo", data: WeatherCardData(
+            backgroundColorTop: Color("night-background-1"),
+            backgroundColorBottom: Color("night-background-2"),
+            backgroundImage: "clouds",
+            location: "Tokyo",
+            currentTemperature: -2,
+            weatherIcon: "snowflake",
+            forecast: "Rain for the next hour",
+            highTemperature: 7,
+            lowTemperature: -4
+        )),
     ]
     
     var body: some View {
@@ -51,45 +75,52 @@ struct ContentView: View {
             ZStack {
                 Color("anti-flash-white").ignoresSafeArea()
                 
-                VStack(spacing: gridPadding) {
-                    ForEach(Array(weatherCards.enumerated()), id: \.offset) { index, card in
-                        let isExpanded = expandedCardID == card.id
-                        let isOtherExpanded = expandedCardID != nil && expandedCardID != card.id
+                ScrollView {
+                    VStack(spacing: gridPadding) {
                         
-                        WeatherCard(
-                            dampedPitch: $dampedPitch,
-                            dampedRoll: $dampedRoll,
-                            isExpanded: .constant(isExpanded),
-                            id: card.id,
-                            onTap: {
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                                    if expandedCardID == card.id {
-                                        expandedCardID = nil
-                                    } else {
-                                        expandedCardID = card.id
+                        Text("Weather")
+                            .font(.largeTitle)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+//                            .padding(.top, 40)
+//                            .padding(.bottom, 20)
+                        
+                        ForEach(Array(weatherCards.enumerated()), id: \.offset) { index, card in
+                            let isExpanded = expandedCardID == card.id
+                            let isOtherExpanded = expandedCardID != nil && expandedCardID != card.id
+                            
+                            WeatherCard(
+                                dampedPitch: $dampedPitch,
+                                dampedRoll: $dampedRoll,
+                                isExpanded: .constant(isExpanded),
+                                id: card.id,
+                                onTap: {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                                        if expandedCardID == card.id {
+                                            expandedCardID = nil
+                                        } else {
+                                            expandedCardID = card.id
+                                        }
                                     }
-                                }
-                            },
-                            backgroundColorTop: card.data.backgroundColorTop,
-                            backgroundColorBottom: card.data.backgroundColorBottom,
-                            backgroundImage: card.data.backgroundImage,
-                            location: card.data.location,
-                            currentTemperature: card.data.currentTemperature,
-                            weatherIcon: card.data.weatherIcon,
-                            forecast: card.data.forecast,
-                            highTemperature: card.data.highTemperature,
-                            lowTemperature: card.data.lowTemperature
-                        )
-                        .frame(
-                            width: isExpanded ? geometry.size.width : .infinity,
-                            height: isExpanded ? geometry.size.height : .infinity
-                        )
-                        .opacity(isOtherExpanded ? 0 : 1)
-                        .zIndex(isExpanded ? 1 : 0)
+                                },
+                                backgroundColorTop: card.data.backgroundColorTop,
+                                backgroundColorBottom: card.data.backgroundColorBottom,
+                                backgroundImage: card.data.backgroundImage,
+                                location: card.data.location,
+                                currentTemperature: card.data.currentTemperature,
+                                weatherIcon: card.data.weatherIcon,
+                                forecast: card.data.forecast,
+                                highTemperature: card.data.highTemperature,
+                                lowTemperature: card.data.lowTemperature
+                            )
+                            .frame(height: isExpanded ? 400 : 200)
+                            .opacity(isOtherExpanded ? 0 : 1)
+                            .zIndex(isExpanded ? 1 : 0)
+                        }
                     }
+                    .padding(gridPadding)
                 }
-                .padding(gridPadding)
-                .frame(maxHeight: 300)
             }
             .onAppear {
                 startMotionUpdates()
